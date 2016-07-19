@@ -10,6 +10,9 @@ player={
  h=4,
  c=7,
  spd=3,
+ center=function(self)
+  return {x=self.x+self.w/2,y=self.y+self.h/2}
+ end,
  draw=function(self)
   rectfill(self.x,self.y,self.x+self.w,self.y+self.h,self.c)
  end,
@@ -29,9 +32,11 @@ ball={
  r=3,
  c=7,
  dir={x=5,y=-3},
+ val=1,
  expletive=nil,
  expletives={
-  "shit", "damn", "dang", "turds", "shucks", "poop stains", "fart blossoms", "poop", "poo", "balls", "farts", "fuuuu..", "..ck"
+  "damn", "dang", "turds", "shucks", "poop stains", "fart blossoms", "poop", "poo", "balls", "farts",
+  "fuuuu..", "..ck", "shit" 
  },
  draw=function(self)
   if self.dead then
@@ -42,6 +47,11 @@ ball={
   end
  end,
  update=function(self)
+  --[[ DEBUG MODE!
+  if not btn(5) then
+   return
+  end
+  --]]
   self.x+=self.dir.x
   self.y+=self.dir.y
 
@@ -79,28 +89,40 @@ function _update()
  player:update()
  ball:update()
 
- if not ball.dead and ball.x+ball.r>=player.x and
-  ball.x-ball.r<=player.x+player.w and
-  ball.y+ball.r>=player.y then
-  sfx(1)
+ if ball.dead then
+  return
+ end
+ if ball.y+ball.r>=player.y and
+  ((ball.x+ball.r>=player.x and ball.x+ball.r<=player.x+player.w) or
+  (ball.x-ball.r>=player.x and ball.x-ball.r<=player.x+player.w)) then
+  -- collision!
+  ball.c=8
 
-  local spdmod = abs(ball.dir.x)+1
-  local pcenter = player.x+player.w/2
-  local distFromCenter = max(abs(ball.x-pcenter), 0.001)
-  local edgemod = 1+(player.w/distFromCenter)
-  score+=flr(0.5+(ball.c*spdmod*edgemod))
-
-  local spdchg=1
-  if (abs(ball.dir.x)<player.spd*1.8 and abs(ball.dir.x)>0.5) then
-   spdchg*=rnd(1.5)+0.25
-  end
-  ball.dir.x*=spdchg
+  -- calc modifiers and add score
+  local pcenter=player:center()
+  local spdmod=1+abs(ball.dir.x)
+  local edgemod=1+(player.w/2)/(abs(ball.x-pcenter.x)+0.001)
+  score+=flr(0.5+(ball.val*spdmod*edgemod))
+  -- make it worth more next time
+  ball.val+=1
 
   if ball.y<=player.y then
    ball.dir.y*=-1
+   ball.y=player.y-ball.r
+   ball.c=9
+  else
+   ball.dir.x*=-1
+   if ball.x<=pcenter.x then
+    ball.x=player.x-ball.r
+   else
+    ball.x=player.x+player.w+ball.r
+   end
   end
 
-  ball.c=flr(rnd(15))+1
+  -- play the paddle bounce sound
+  sfx(1)
+ else
+  ball.c=7
  end
 end
 __gfx__
