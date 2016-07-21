@@ -1,68 +1,67 @@
 pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
-smoke={}
+heart_cloud={}
 spawn_rate=33 
 
-function make_smoke(x,y,init_size,c)
- local s={}
- s.x=x
- s.y=y
- s.c=c
- s.w=init_size
- s.w_max=init_size+rnd(2)+1
- s.t=0
- s.t_max=30+rnd(16)
- s.dx=rnd(1)-0.4
- s.dy=rnd(0.5)
- s.ddy=0.04
- s.is_heart=rnd(100)<78
- add(smoke,s)
- return s
+function make_heart(x,y,init_size,c)
+ local h={}
+ h.x=x
+ h.y=y
+ h.c=c
+ h.w=init_size
+ h.w_max=init_size+rnd(2)+1
+ h.t=0
+ h.t_max=30+rnd(16)
+ h.dx=rnd(1)-0.4
+ h.dy=rnd(0.5)
+ h.ddy=0.04
+ h.is_cloud=rnd(1)<0.2
+ add(heart_cloud,h)
+ return h
 end
 
-function move_smoke(sp)
- if sp.t>sp.t_max then
-  del(smoke,sp)
+function move_heart(h)
+ if h.t>h.t_max then
+  del(heart_cloud,h)
  end
- if sp.t>sp.t_max-15 then
-  sp.w=min(1+sp.w,sp.w_max)
+ if h.t>h.t_max-15 then
+  h.w=min(1+h.w,h.w_max)
  end
- sp.x+=sp.dx
- sp.y+=sp.dy
- sp.dy-=sp.ddy
- sp.t+=1
+ h.x+=h.dx
+ h.y+=h.dy
+ h.dy-=h.ddy
+ h.t+=1
 end
 
-function draw_smoke(s)
- if s.is_heart then
-  spr(1,s.x,s.y)
+function draw_heart(h)
+ if h.is_cloud then
+  circfill(h.x,h.y,h.w,h.c)
  else
-  circfill(s.x,s.y,s.w,s.c)
+  spr(1,h.x,h.y)
  end
 end
 
 function _init()
- smoke={}
  cursorx=50
  cursory=50
  color=7
 end
 
 function _update()
- foreach(smoke,move_smoke)
+ foreach(heart_cloud,move_heart)
  if (btn(0)) then cursorx-=1 end
  if (btn(1)) then cursorx+=1 end
  if (btn(2)) then cursory-=1 end
  if (btn(3)) then cursory+=1 end
  if (btn(4)) then spawn_rate=max(10, spawn_rate-1) end
  if (btn(5)) then spawn_rate=min(99, spawn_rate+1) end
- if (rnd(100)<spawn_rate)then make_smoke(cursorx,cursory,rnd(3),color) end
+ if (rnd(100)<spawn_rate)then make_heart(cursorx,cursory,rnd(3),color) end
 end
 
 function _draw()
  cls()
- foreach(smoke,draw_smoke)
+ foreach(heart_cloud,draw_heart)
  spr(3,cursorx+3,cursory-3)
  print(spawn_rate,0,0,6)
 end
