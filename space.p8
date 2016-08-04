@@ -1,6 +1,23 @@
 pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
+bullets={}
+function make_bullet(x,y,w,c,spd)
+ local b={
+  x=x,
+  y=y,
+  c=c,
+  w=w,
+  spd=spd,
+  draw=function(self)
+   rectfill(self.x,self.y,self.x+self.w,self.y+1,self.c)
+  end,
+  update=function(self)
+   self.y-=self.spd
+  end
+ }
+ return b
+end
 player={
  x=0,
  y=0,
@@ -8,37 +25,59 @@ player={
  h=16,
  spd=3,
  guns={
-  {x=1,y=6,c=12,w=0,spd=4},
-  {x=14,y=6,c=8,w=0,spd=4},
-  {x=7,y=2,c=11,w=1,spd=3},
+  {t=60,cd=0,make_bullet=function(x,y) return make_bullet(x+1,y+6,0,12,4) end},
+  {t=60,cd=0,make_bullet=function(x,y) return make_bullet(x+14,y+6,0,8,4) end},
+  {t=60,cd=0,make_bullet=function(x,y) return make_bullet(x+7,y+2,1,11,3) end},
+  {t=120,cd=0,
+   make_bullet=function(x,y)
+    return {
+     x=x+7,y=y+8,c=12,r=1,t=0,
+     draw=function(self)
+      if self.r > 0 then
+       circ(self.x,self.y,self.r,self.c)
+      end
+     end,
+     update=function(self)
+      self.t+=1
+      if self.t%3==0 then
+       self.r+=1
+      end
+     end
+    }
+   end
+  }
  },
- bullets={},
  draw=function(self)
   spr(0,self.x,self.y,2,2)
-  for b in all(self.bullets) do
-   rectfill(b.x,b.y,b.x+b.w,b.y+1,b.c)
-  end
  end,
  update=function(self)
-  if btn(0) then self.x-=self.spd end
-  if btn(1) then self.x+=self.spd end
-  if btn(3) then self.y+=self.spd end
-
-  for b in all(self.bullets) do
-   b.y-=b.spd
-   if b.y<0 then 
-    del(self.bullets,b)
+  for g in all(self.guns) do
+   if g.cd>0 then
+    g.cd-=1
    end
   end
+  if btn(0) then self.x-=self.spd end
+  if btn(1) then self.x+=self.spd end
 
-  if btnp(4) then
-   self:shoot(1)
+  if btnp(2) then 
+   self:shoot(3)
+  end
+  if btnp(4) then 
+   local g=self.guns[4]
+   if btn(3) and g.cd==0 then
+    g.cd=g.t
+    for i=0,4,2 do
+     local b=g.make_bullet(self.x,self.y)
+     b.r+=i
+     add(bullets,b)
+     sfx(1)
+    end
+   else
+    self:shoot(1)
+   end
   end
   if btnp(5) then
    self:shoot(2)
-  end
-  if btnp(2) then 
-   self:shoot(3)
   end
 
   if self.x < 0 then self.x=0 end
@@ -48,8 +87,8 @@ player={
  end,
  shoot=function(self,n)
   local g=self.guns[n]
-  local b={x=g.x+self.x,y=g.y+self.y,w=g.w,c=g.c,spd=g.spd}
-  add(self.bullets,b)
+  local b=g.make_bullet(self.x,self.y)
+  add(bullets,b)
   sfx(n)
  end
 }
@@ -58,11 +97,24 @@ function _init()
  player.y = 127-2-player.h
 end
 function _update()
+ _update60()
+ _update60()
+end
+function _update60()
  player:update()
+ for b in all(bullets) do
+  b:update()
+  if b.y<0 then 
+   del(bullets,b)
+  end
+ end
 end
 function _draw()
  cls()
  player:draw()
+ for b in all(bullets) do
+  b:draw()
+ end
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
